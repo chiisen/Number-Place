@@ -1,0 +1,358 @@
+:root {
+    --bg-color: #1a1a2e;
+    --board-bg: #16213e;
+    --cell-bg: #0f3460;
+    --cell-selected: #e94560;
+    --cell-highlight: #533483;
+    --cell-same: #394867;
+    --cell-error: #ff6b6b;
+    --text-primary: #eaeaea;
+    --text-secondary: #a0a0a0;
+    --border-color: #2a2a4a;
+    --accent: #e94560;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+.timer {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.difficulty-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.difficulty-btn {
+    padding: 8px 16px;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.difficulty-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.difficulty-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.board-container {
+    background: var(--board-bg);
+    padding: 8px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 1px;
+    background: var(--border-color);
+    border: 3px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.cell {
+    width: 40px;
+    height: 40px;
+    background: var(--cell-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    position: relative;
+}
+
+.cell:nth-child(3n) {
+    border-right: 2px solid var(--border-color);
+}
+
+.cell:nth-child(9n) {
+    border-right: none;
+}
+
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 2px solid var(--border-color);
+}
+
+.cell:hover {
+    background: var(--cell-highlight);
+}
+
+.cell.selected {
+    background: var(--cell-selected) !important;
+    box-shadow: inset 0 0 0 2px white;
+}
+
+.cell.highlight {
+    background: var(--cell-same);
+}
+
+.cell.same-number {
+    background: var(--cell-highlight);
+}
+
+.cell.related {
+    background: rgba(233, 69, 96, 0.15);
+}
+
+.cell.fixed {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.cell.user-input {
+    color: #7ec8e3;
+}
+
+.cell.error {
+    color: var(--cell-error) !important;
+    background: rgba(255, 107, 107, 0.2) !important;
+}
+
+.cell .candidates {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+}
+
+.cell .candidates span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.number-pad {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 400px;
+}
+
+.number-btn {
+    width: 42px;
+    height: 42px;
+    border: 2px solid var(--border-color);
+    background: var(--cell-bg);
+    color: var(--text-primary);
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.number-btn:hover {
+    background: var(--cell-highlight);
+    border-color: var(--accent);
+}
+
+.number-btn:active {
+    transform: scale(0.95);
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.control-btn {
+    padding: 10px 20px;
+    border: none;
+    background: var(--cell-bg);
+    color: var(--text-primary);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.control-btn:hover {
+    background: var(--cell-highlight);
+}
+
+.control-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.control-btn.primary {
+    background: var(--accent);
+}
+
+.control-btn.primary:hover {
+    background: #ff5a75;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal {
+    background: var(--board-bg);
+    padding: 40px;
+    border-radius: 16px;
+    text-align: center;
+    animation: popIn 0.3s ease;
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal h2 {
+    color: #4ecdc4;
+    font-size: 2rem;
+    margin-bottom: 16px;
+}
+
+.modal p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    font-size: 1.1rem;
+}
+
+.modal .btn {
+    padding: 12px 32px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal .btn:hover {
+    background: #ff5a75;
+    transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .cell {
+        width: 34px;
+        height: 34px;
+        font-size: 1.2rem;
+    }
+
+    .number-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .controls {
+        gap: 8px;
+    }
+
+    .control-btn {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+    }
+
+    h1 {
+        font-size: 1.6rem;
+    }
+}
+
+@keyframes flash-yellow {
+    0% {
+        transform: scale(1);
+        outline: 3px solid #f1c40f;
+        box-shadow: 0 0 15px #f1c40f;
+        z-index: 5;
+    }
+
+    50% {
+        transform: scale(1.05);
+        outline: 3px solid #f1c40f;
+        box-shadow: 0 0 25px #f1c40f;
+        z-index: 5;
+    }
+
+    100% {
+        transform: scale(1);
+        outline: 0px solid transparent;
+        box-shadow: none;
+        z-index: 1;
+    }
+}
+
+.conflict-flash {
+    animation: flash-yellow 0.8s ease-out;
+    position: relative;
+}
