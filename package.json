@@ -1,0 +1,9 @@
+{
+    "name": "sudoku-game",
+    "version": "1.0.0",
+    "description": "Sudoku game with save/load, undo, and theme switching",
+    "type": "module",
+    "scripts": {
+        "test": "bun test"
+    }
+}
