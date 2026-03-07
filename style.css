@@ -12,6 +12,20 @@
     --accent: #e94560;
 }
 
+[data-theme="light"] {
+    --bg-color: #f5f5f5;
+    --board-bg: #ffffff;
+    --cell-bg: #e8e8e8;
+    --cell-selected: #e94560;
+    --cell-highlight: #d4a5c9;
+    --cell-same: #c5d8cc;
+    --cell-error: #ff6b6b;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --border-color: #cccccc;
+    --accent: #e94560;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -355,4 +369,52 @@ h1 {
 .conflict-flash {
     animation: flash-yellow 0.8s ease-out;
     position: relative;
+}
+
+/* History Modal */
+.history-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.history-item .difficulty {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.history-item .time {
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+.history-item .date {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.no-history {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.modal .btn.secondary {
+    background: var(--cell-bg);
+    color: var(--text-primary);
 }

@@ -2,6 +2,8 @@
 // 數獨遊戲核心邏輯
 // ============================================
 
+import { StorageManager } from './src/storage.js';
+
 const DIFFICULTY = {
     easy: 35,    // 挖空數量
     medium: 45,
@@ -17,6 +19,8 @@ let currentDifficulty = 'medium';
 let timerInterval = null;
 let seconds = 0;
 let gameCompleted = false;
+let undoHistory = [];  // 撤回歷史
+const MAX_UNDO = 50;   // 最大撤回步數
 
 // --------------------------------------------
 // 數獨生成演算法
@@ -343,22 +347,24 @@ function inputNumber(num) {
     // 固定數字不能修改
     if (puzzle[row][col] !== 0) return;
 
+    // 記錄歷史（只在有變化時記錄）
+    const prevValue = userBoard[row][col];
+    if (prevValue !== num) {
+        saveToHistory();
+    }
+
     if (num === 0) {
         // 清除輸入
         userBoard[row][col] = 0;
         showStatus('');
     } else {
-        // 如果目前值已經是這個數字，則視為重複點擊，不做處理或清除（通常數獨點擊同數字可能是想取消）
-        // 這裡我們維持原邏輯：填入數字
-
         // 檢查規則衝突
         const conflicts = findConflicts(row, col, num);
         if (conflicts.length > 0) {
             showStatus('⚠️ 違反數獨規則：該位置已存在相同的數字');
             triggerConflictFlash(conflicts);
-            // 同時閃爍當前選中的格子提示衝突
             triggerConflictFlash([[row, col]]);
-            return; // 遵守需求：不給填數字
+            return;
         }
 
         userBoard[row][col] = num;
@@ -367,12 +373,22 @@ function inputNumber(num) {
 
     renderBoard();
     checkGameComplete();
+    autoSave();
 }
 
 function checkGameComplete() {
     if (checkWin()) {
         gameCompleted = true;
         stopTimer();
+
+        StorageManager.addHistoryRecord({
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+            completedAt: Date.now(),
+            difficulty: currentDifficulty,
+            timeSeconds: seconds,
+            wasCompleted: true
+        });
+
         document.getElementById('finalTime').textContent = formatTime(seconds);
         document.getElementById('modalOverlay').classList.add('show');
     }
@@ -408,24 +424,80 @@ function formatTime(sec) {
 // 遊戲控制
 // --------------------------------------------
 
+function saveToHistory() {
+    undoHistory.push(userBoard.map(row => [...row]));
+    if (undoHistory.length > MAX_UNDO) {
+        undoHistory.shift();
+    }
+}
+
+function undo() {
+    if (gameCompleted || undoHistory.length === 0) return;
+
+    const previousState = undoHistory.pop();
+    userBoard = previousState.map(row => [...row]);
+    renderBoard();
+    showStatus('');
+}
+
+function autoSave() {
+    StorageManager.saveGame({
+        difficulty: currentDifficulty,
+        board: board,
+        puzzle: puzzle,
+        userBoard: userBoard,
+        seconds: seconds,
+        showCandidates: showCandidates
+    });
+}
+
+function loadSavedGame() {
+    const savedData = StorageManager.loadGame();
+    if (!savedData) return false;
+
+    board = savedData.board;
+    puzzle = savedData.puzzle;
+    userBoard = savedData.userBoard;
+    currentDifficulty = savedData.difficulty;
+    seconds = savedData.seconds;
+    showCandidates = savedData.showCandidates || false;
+    gameCompleted = false;
+    selectedCell = null;
+
+    document.querySelectorAll('.difficulty-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.level === currentDifficulty);
+    });
+
+    const btn = document.getElementById('candidatesBtn');
+    if (btn) btn.classList.toggle('active', showCandidates);
+
+    renderBoard();
+    startTimer();
+    return true;
+}
+
 function newGame() {
     gameCompleted = false;
     selectedCell = null;
+    undoHistory = [];
     stopTimer();
     generatePuzzle(currentDifficulty);
     renderBoard();
     startTimer();
     document.getElementById('modalOverlay').classList.remove('show');
+    autoSave();
 }
 
 function resetGame() {
     gameCompleted = false;
     selectedCell = null;
+    undoHistory = [];
     stopTimer();
     userBoard = puzzle.map(row => [...row]);
     renderBoard();
     startTimer();
     document.getElementById('modalOverlay').classList.remove('show');
+    autoSave();
 }
 
 function giveHint() {
@@ -482,6 +554,13 @@ function toggleCandidates() {
 function handleKeydown(e) {
     if (gameCompleted) return;
 
+    // 撤回快捷鍵 Ctrl+Z 或 U 鍵
+    if ((e.ctrlKey && e.key === 'z') || e.key === 'u' || e.key === 'U') {
+        e.preventDefault();
+        undo();
+        return;
+    }
+
     // 數字鍵 1-9
     if (e.key >= '1' && e.key <= '9') {
         inputNumber(parseInt(e.key));
@@ -521,10 +600,66 @@ function handleKeydown(e) {
 }
 
 // --------------------------------------------
+// 主題管理
+// --------------------------------------------
+
+function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const newTheme = isDark ? 'light' : 'dark';
+    applyTheme(newTheme);
+    StorageManager.saveTheme(newTheme);
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+}
+
+function initTheme() {
+    const theme = StorageManager.loadTheme();
+    applyTheme(theme);
+}
+
+// --------------------------------------------
+// 歷史記錄
+// --------------------------------------------
+
+function showHistory() {
+    const records = StorageManager.getHistoryRecords();
+    const listEl = document.getElementById('historyList');
+    listEl.innerHTML = '';
+
+    if (records.length === 0) {
+        listEl.innerHTML = '<p class="no-history">尚無遊戲記錄</p>';
+    } else {
+        records.forEach(record => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            const date = new Date(record.completedAt);
+            const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+            const difficultyNames = { easy: '簡單', medium: '中等', hard: '困難' };
+            div.innerHTML = `
+                <span class="difficulty">${difficultyNames[record.difficulty] || record.difficulty}</span>
+                <span class="time">${formatTime(record.timeSeconds)}</span>
+                <span class="date">${dateStr}</span>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+
+    document.getElementById('historyModal').classList.add('show');
+}
+
+function hideHistory() {
+    document.getElementById('historyModal').classList.remove('show');
+}
+
+// --------------------------------------------
 // 事件綁定
 // --------------------------------------------
 
 function init() {
+    initTheme();
+
     // 數字鍵盤
     document.getElementById('numberPad').addEventListener('click', (e) => {
         if (e.target.classList.contains('number-btn')) {
@@ -539,6 +674,10 @@ function init() {
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     document.getElementById('newGameBtn').addEventListener('click', newGame);
     document.getElementById('playAgainBtn').addEventListener('click', newGame);
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+    document.getElementById('historyBtn').addEventListener('click', showHistory);
+    document.getElementById('closeHistoryBtn').addEventListener('click', hideHistory);
 
     // 難度選擇
     document.querySelectorAll('.difficulty-btn').forEach(btn => {
@@ -553,8 +692,23 @@ function init() {
     // 鍵盤事件
     document.addEventListener('keydown', handleKeydown);
 
-    // 開始遊戲
-    newGame();
+    // 檢查存檔
+    if (StorageManager.hasSavedGame()) {
+        document.getElementById('loadGameModal').classList.add('show');
+        
+        document.getElementById('loadGameBtn').addEventListener('click', () => {
+            document.getElementById('loadGameModal').classList.remove('show');
+            loadSavedGame();
+        });
+
+        document.getElementById('newGameAnywayBtn').addEventListener('click', () => {
+            document.getElementById('loadGameModal').classList.remove('show');
+            StorageManager.deleteSavedGame();
+            newGame();
+        });
+    } else {
+        newGame();
+    }
 }
 
 // 頁面載入完成後初始化

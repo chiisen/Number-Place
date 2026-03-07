@@ -38,6 +38,9 @@
     </div>
 
     <div class="controls">
+        <button class="control-btn" id="themeBtn">主題</button>
+        <button class="control-btn" id="historyBtn">歷史</button>
+        <button class="control-btn" id="undoBtn">撤回</button>
         <button class="control-btn" id="hintBtn">提示</button>
         <button class="control-btn" id="candidatesBtn">候選數</button>
         <button class="control-btn" id="resetBtn">重置</button>
@@ -51,6 +54,25 @@
             <h2>🎉 恭喜通關！</h2>
             <p>完成時間：<span id="finalTime">00:00</span></p>
             <button class="btn" id="playAgainBtn">再玩一局</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal">
+            <h2>📊 遊戲歷史</h2>
+            <div id="historyList" class="history-list"></div>
+            <button class="btn" id="closeHistoryBtn">關閉</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="loadGameModal">
+        <div class="modal">
+            <h2>💾 發現存檔</h2>
+            <p>是否要繼續上次的遊戲？</p>
+            <div class="modal-buttons">
+                <button class="btn" id="loadGameBtn">繼續遊戲</button>
+                <button class="btn secondary" id="newGameAnywayBtn">新遊戲</button>
+            </div>
         </div>
     </div>
 
